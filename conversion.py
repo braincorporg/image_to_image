@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 import requests
 import base64
 import os
+import io
 
 app = FastAPI()
 
