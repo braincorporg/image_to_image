@@ -1,8 +1,6 @@
 from fastapi import FastAPI, HTTPException
 import requests
-import base64
 import os
-import io
 
 app = FastAPI()
 
@@ -17,7 +15,7 @@ async def transform_image(image_url: str):
         raise HTTPException(status_code=400, detail=f"Failed to download image: {e}")
 
     # Prepare the request for the Stability AI API
-    api_host = "https://api.stability.ai"  # Or your custom API host if applicable
+    api_host = "https://api.stability.ai"
     api_key = "sk-ulNhU9ehEwWCiUHAA9kUdOn2ZjB5QHxI2VahJvalvduD3hwd"  # Replace with your actual API key
     headers = {
         "Accept": "application/json",
@@ -32,7 +30,7 @@ async def transform_image(image_url: str):
         "steps": 50,
     }
     files = {
-        "init_image": ("image.png", io.BytesIO(image_bytes), 'image/png')
+        "init_image": ("image.png", image_bytes, 'image/png')  # Using image_bytes directly
     }
 
     # Send request to Stability AI API
