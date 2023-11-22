@@ -1,54 +1,59 @@
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 import requests
 import os
 
 app = FastAPI()
 
-@app.post("/transform-image/")
-async def transform_image(image_url: str):
+# API Configuration
+engine_id = "stable-diffusion-xl-1024-v1-0"
+api_host = os.getenv("API_HOST", "https://api.stability.ai")
+api_key = "sk-ulNhU9ehEwWCiUHAA9kUdOn2ZjB5QHxI2VahJvalvduD3hwd"
+
+if api_key is None:
+    raise Exception("Missing Stability API key.")
+
+class ImageRequest(BaseModel):
+    image_url: str
+
+@app.post("/convert-image")
+async def convert_image(request: ImageRequest):
     # Download the image from the URL
     try:
-        response = requests.get(image_url)
+        response = requests.get(request.image_url)
         response.raise_for_status()
-        image_bytes = response.content
     except requests.RequestException as e:
-        raise HTTPException(status_code=400, detail=f"Failed to download image: {e}")
+        raise HTTPException(status_code=400, detail=f"Failed to download image: {str(e)}")
 
-    # Prepare the request for the Stability AI API
-    api_host = "https://api.stability.ai"
-    api_key = "sk-ulNhU9ehEwWCiUHAA9kUdOn2ZjB5QHxI2VahJvalvduD3hwd"  # Replace with your actual API key
-    headers = {
-        "Accept": "application/json",
-        "Authorization": f"Bearer {api_key}"
-    }
-    data = {
-        "image_strength": 0.20,
-        "init_image_mode": "IMAGE_STRENGTH",
-        "text_prompts[0][text]": "make the dragon like an anime character, flat in 2D.",
-        "cfg_scale": 9,
-        "samples": 1,
-        "steps": 50,
-    }
-    files = {
-        "init_image": ("image.png", image_bytes, 'image/png')  # Using image_bytes directly
-    }
-
-    # Send request to Stability AI API
+    # Send the request to Stability AI API
     try:
-        stability_response = requests.post(
-            f"{api_host}/v1/generation/stable-diffusion-xl-1024-v1-0/image-to-image",
-            headers=headers,
-            data=data,
-            files=files
+        ai_response = requests.post(
+            f"{api_host}/v1/generation/{engine_id}/image-to-image",
+            headers={
+                "Accept": "application/json",
+                "Authorization": f"Bearer {api_key}"
+            },
+            files={
+                "init_image": ("image.png", response.content)
+            },
+            data={
+                "image_strength": 0.20,
+                "init_image_mode": "IMAGE_STRENGTH",
+                "text_prompts[0][text]": "make the dragon like an anime character, flat in 2D.",
+                "cfg_scale": 9,
+                "samples": 1,
+                "steps": 50,
+            }
         )
-        stability_response.raise_for_status()
+        ai_response.raise_for_status()
     except requests.RequestException as e:
-        raise HTTPException(status_code=500, detail=f"Stability AI API request failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Stability AI API request failed: {str(e)}")
 
-    # Extract the base64 encoded image from the response
-    stability_data = stability_response.json()
-    base64_image = stability_data["artifacts"][0]["base64"]
+    # Extracting the base64 encoded image from the response
+    data = ai_response.json()
+    image_base64 = next((artifact["base64"] for artifact in data["artifacts"]), None)
 
-    return {"base64_image": base64_image}
+    if not image_base64:
+        raise HTTPException(status_code=500, detail="No image found in the response.")
 
-# Add other routes and logic as needed
+    return {"base64": image_base64}
