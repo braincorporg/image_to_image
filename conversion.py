@@ -18,7 +18,7 @@ async def transform_image(image_url: str):
 
     # Prepare the request for the Stability AI API
     api_host = "https://api.stability.ai"  # Or your custom API host if applicable
-    api_key = "your-api-key"  # Replace with your actual API key
+    api_key = "sk-ulNhU9ehEwWCiUHAA9kUdOn2ZjB5QHxI2VahJvalvduD3hwd"  # Replace with your actual API key
     headers = {
         "Accept": "application/json",
         "Authorization": f"Bearer {api_key}"
