@@ -9,6 +9,7 @@ app = FastAPI()
 class ImageRequest(BaseModel):
     image_url: str
     text_prompt: str
+    image_strength: float
 
 # API Configuration
 engine_id = "stable-diffusion-xl-1024-v1-0"
@@ -36,7 +37,7 @@ async def convert_image(request: ImageRequest):
             "init_image": ("image.png", response.content)  # Pass image bytes directly
         },
         data={
-            "image_strength": 0.20,
+            "image_strength": request.image_strength,
             "init_image_mode": "IMAGE_STRENGTH",
             "text_prompts[0][text]": request.text_prompt,
             "cfg_scale": 9,
